@@ -1,6 +1,6 @@
-# plugin-starter
+# plugin-postSpeech
 
-Halo 2.0 插件开发快速开始模板。
+> 求一个设计师大佬或者前端大佬帮我给一个UI图或者共享一下Pr,我真的设计不出来好看的UI
 
 ## 开发环境
 
