@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import confetti from "canvas-confetti";
-import { onMounted } from "vue";
+import {onMounted} from "vue";
 import RiShareCircleLine from "~icons/ri/share-circle-line";
 import RiCodeBoxLine from "~icons/ri/code-box-line";
 import RiBookReadLine from "~icons/ri/book-read-line";

@@ -1,0 +1,219 @@
+/* 语音朗读组件样式文件 */
+
+/* 根变量定义 - 可通过修改这些变量来自定义组件外观 */
+:root {
+    /* 主题颜色 */
+    --likcc-speech-primary-color: #2196f3;    /* 主色调，修改此值改变播放按钮和进度条颜色 */
+    --likcc-speech-secondary-color: #64b5f6;  /* 次要色调，修改此值改变渐变和悬停效果颜色 */
+    --likcc-speech-warning-color: #ff9800;    /* 警告色，修改此值改变暂停状态颜色 */
+    --likcc-speech-error-color: #f44366;      /* 错误色，修改此值改变错误提示颜色 */
+    --likcc-speech-text-color: #666;          /* 文本颜色，修改此值改变文字颜色 */
+    --likcc-speech-bg-color: #ffffff;         /* 背景色，修改此值改变背景颜色 */
+    --likcc-speech-bg-gradient-start: #ffffff; /* 渐变起始色，修改此值改变渐变开始颜色 */
+    --likcc-speech-bg-gradient-end: #f5f5f5;   /* 渐变结束色，修改此值改变渐变结束颜色 */
+    
+    /* 尺寸 */
+    --likcc-speech-btn-size: 48px;            /* 主按钮尺寸，修改此值改变按钮大小 */
+    --likcc-speech-progress-line-width: 2px;   /* 进度条线条宽度，修改此值改变进度条粗细 */
+    --likcc-speech-progress-line-height: 14px; /* 进度条线条高度，修改此值改变进度条高度 */
+    
+    /* 阴影 */
+    --likcc-speech-shadow-color: rgba(0, 0, 0, 0.08);  /* 阴影颜色，修改此值改变阴影颜色 */
+    --likcc-speech-shadow-size: 0 4px 12px;            /* 默认阴影大小，修改此值改变阴影范围 */
+    --likcc-speech-hover-shadow-size: 0 6px 16px;      /* 悬停时阴影大小，修改此值改变悬停阴影范围 */
+    
+    /* 边框 */
+    --likcc-speech-border-color: rgba(0, 0, 0, 0.03);  /* 边框颜色，修改此值改变边框颜色 */
+    --likcc-speech-border-radius: 50%;                 /* 边框圆角，修改此值改变按钮圆角程度 */
+    
+    /* 动画 */
+    --likcc-speech-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);  /* 过渡动画，修改此值改变动画效果 */
+    
+    /* 模糊效果 */
+    --likcc-speech-blur: 8px;  /* 背景模糊程度，修改此值改变模糊效果 */
+}
+
+/* 按钮容器 - 控制组件的固定位置和布局 */
+.likcc-speech-container {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    /* 默认靠右布局 */
+    flex-direction: row;
+    filter: drop-shadow(var(--likcc-speech-shadow-size) var(--likcc-speech-shadow-color));
+}
+
+/* 位置类 - 控制按钮靠左或靠右 */
+.likcc-speech-container.pos-left,
+.likcc-speech-container.pos-right {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* 左侧位置 */
+.likcc-speech-container.pos-left {
+    left: 20px;
+    margin-right: auto;
+    /* 左侧时按钮顺序反转 */
+    flex-direction: row-reverse;
+}
+
+/* 右侧位置 */
+.likcc-speech-container.pos-right {
+    right: 20px;
+    margin-left: auto;
+}
+
+/* 主播放按钮 */
+.likcc-speech-btn {
+    position: relative;
+    width: var(--likcc-speech-btn-size);
+    height: var(--likcc-speech-btn-size);
+    border-radius: var(--likcc-speech-border-radius);
+    background: linear-gradient(145deg, var(--likcc-speech-bg-gradient-start), var(--likcc-speech-bg-gradient-end));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--likcc-speech-transition);
+    box-shadow: var(--likcc-speech-shadow-size) var(--likcc-speech-shadow-color);
+    border: 1px solid var(--likcc-speech-border-color);
+    flex-shrink: 0;
+    backdrop-filter: blur(var(--likcc-speech-blur));
+    -webkit-backdrop-filter: blur(var(--likcc-speech-blur));
+}
+
+/* 按钮状态样式 - 播放中和暂停状态 */
+.likcc-speech-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--likcc-speech-hover-shadow-size) var(--likcc-speech-shadow-color);
+    background: linear-gradient(145deg, var(--likcc-speech-bg-gradient-start), #fafafa);
+}
+
+.likcc-speech-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.likcc-speech-btn.playing {
+    background: linear-gradient(145deg, #e3f2fd, #bbdefb);
+    border-color: rgba(33, 150, 243, 0.1);
+}
+
+.likcc-speech-btn.paused {
+    background: linear-gradient(145deg, #fff3e0, #ffe0b2);
+    border-color: rgba(255, 152, 0, 0.1);
+}
+
+/* 进度条容器 */
+.likcc-speech-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+/* 进度条线条 */
+.likcc-speech-progress i {
+    width: var(--likcc-speech-progress-line-width);
+    height: var(--likcc-speech-progress-line-height);
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 1px;
+    transition: var(--likcc-speech-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 进度条填充 */
+.likcc-speech-progress i::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: var(--child-pct);
+    background: linear-gradient(to top, var(--likcc-speech-primary-color), var(--likcc-speech-secondary-color));
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 1px;
+}
+
+/* 播放/暂停图标 */
+.likcc-speech-icon {
+    position: relative;
+    z-index: 1;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 7px 0 7px 12px;
+    border-color: transparent transparent transparent #666;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+.likcc-speech-icon.pause {
+    border-style: double;
+    border-width: 0 0 0 12px;
+    border-color: transparent transparent transparent #666;
+}
+
+.likcc-speech-btn.playing .likcc-speech-icon {
+    border-color: transparent transparent transparent #2196f3;
+}
+
+.likcc-speech-btn.paused .likcc-speech-icon {
+    border-color: transparent transparent transparent #ff9800;
+}
+
+/* 加载动画样式 */
+.likcc-speech-btn.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.likcc-speech-btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(33, 150, 243, 0.1);
+    border-top: 2px solid #2196f3;
+    border-radius: 50%;
+    animation: likcc-speech-spin 1s linear infinite;
+}
+
+@keyframes likcc-speech-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 错误提示样式 */
+.likcc-speech-error {
+    position: absolute;
+    top: -36px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44366;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 67, 54, 0.1);
+}
+
+.likcc-speech-error.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+} 
