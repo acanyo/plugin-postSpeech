@@ -205,33 +205,20 @@
         btnContainer.appendChild(errorTip);
 
         const progress = createElement('div', 'likcc-speech-progress');
-        for (let i = 0; i < 10; i++) {
-            const line = createElement('i', '');
-            line.style.setProperty('--child-pct', '0%');
-            progress.appendChild(line);
-        }
-
         const icon = createElement('div', 'likcc-speech-icon');
         btn.appendChild(progress);
         btn.appendChild(icon);
+
+        // 添加百分比显示元素
+        const percentageElement = createElement('div', 'likcc-speech-percentage');
+        btnContainer.appendChild(percentageElement);
+
         btnContainer.appendChild(btn);
         target.appendChild(btnContainer);
 
         let utterance = null;
         let isPlaying = false;
         let isInitialized = false;
-        const progressLines = btn.querySelectorAll('.likcc-speech-progress i');
-
-        const updateProgress = (progress) => {
-            progressLines.forEach((line, index) => {
-                const start = index * 10;
-                const end = (index + 1) * 10;
-                let pct = 0;
-                if (progress >= end) pct = 100;
-                else if (progress >= start) pct = ((progress - start) / (end - start)) * 100;
-                line.style.setProperty('--child-pct', `${pct}%`);
-            });
-        };
 
         const resetState = () => {
             isPlaying = false;
@@ -239,7 +226,6 @@
             btn.classList.remove('playing', 'paused');
             btn.classList.add('ready');
             icon.classList.remove('pause');
-            updateProgress(0);
             utterance = null;
         };
 
@@ -277,55 +263,74 @@
             }
 
             if (isPlaying) {
-                window.speechSynthesis.pause();
+                // Update state and UI immediately
                 isPlaying = false;
                 btn.title = '继续朗读';
                 btn.classList.remove('playing');
                 btn.classList.add('paused');
                 icon.classList.remove('pause');
+
+                // Then pause speech synthesis
+                window.speechSynthesis.pause();
             } else {
                 try {
-                    if (window.speechSynthesis.speaking || window.speechSynthesis.pending || window.speechSynthesis.paused) {
-                        window.speechSynthesis.cancel();
-                    }
+                    if (window.speechSynthesis.paused) {
+                        // 从暂停处继续播放
+                        window.speechSynthesis.resume();
+                        
+                        // 更新状态为播放中
+                        isPlaying = true;
+                        btn.title = '暂停朗读';
+                        btn.classList.remove('paused', 'ready'); // 移除暂停和准备状态
+                        btn.classList.add('playing');
+                        icon.classList.add('pause');
 
-                    utterance = new SpeechSynthesisUtterance(articleContent);
-                    utterance.rate = defaultSpeed;
+                    } else { 
+                        // 不是暂停状态，开始新播放
+                        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                            window.speechSynthesis.cancel();
+                        }
 
-                    utterance.onstart = () => {
+                        utterance = new SpeechSynthesisUtterance(articleContent);
+                        utterance.rate = defaultSpeed;
+
+                        utterance.onstart = () => {
+                            isPlaying = true;
+                            btn.title = '暂停朗读';
+                            btn.classList.remove('paused', 'ready');
+                            btn.classList.add('playing');
+                            icon.classList.add('pause');
+                        };
+
+                        utterance.onend = () => {
+                            resetState();
+                        };
+
+                        utterance.onerror = (event) => {
+                            console.error('[LikccSpeech] 语音播放错误 (onerror):', event);
+                            if (!event.error || event.error !== 'interrupted') {
+                                showError(errorTip, '语音合成出错');
+                            }
+                            resetState();
+                        };
+
+                        utterance.onboundary = (event) => {
+                            const progress = Math.min(100, Math.round((event.charIndex / articleContent.length) * 100 * 100) / 100);
+                            percentageElement.textContent = `${Math.round(progress)}%`;
+                        };
+
+                        window.speechSynthesis.speak(utterance);
+                        
+                        // 第一次开始新播放时设置状态
                         isPlaying = true;
                         btn.title = '暂停朗读';
                         btn.classList.remove('paused', 'ready');
                         btn.classList.add('playing');
                         icon.classList.add('pause');
-                        updateProgress(0);
-                    };
-
-                    utterance.onend = () => {
-                        resetState();
-                    };
-
-                    utterance.onerror = (event) => {
-                        if (!event.error || event.error !== 'interrupted') {
-                            showError(errorTip, '语音合成出错');
-                        }
-                        resetState();
-                    };
-
-                    utterance.onboundary = (event) => {
-                        const progress = Math.min(100, Math.round((event.charIndex / articleContent.length) * 100 * 100) / 100);
-                        updateProgress(progress);
-                    };
-
-                    window.speechSynthesis.speak(utterance);
-
-                    isPlaying = true;
-                    btn.title = '暂停朗读';
-                    btn.classList.remove('paused', 'ready');
-                    btn.classList.add('playing');
-                    icon.classList.add('pause');
+                    }
 
                 } catch (error) {
+                    console.error('[LikccSpeech] 播放失败:', error);
                     showError(errorTip, '播放失败，请重试');
                     resetState();
                 }
@@ -347,6 +352,7 @@
             btn.classList.remove('loading');
             btn.title = '开始朗读';
         } catch (error) {
+            console.error('[LikccSpeech] 语音组件初始化失败:', error);
             showError(errorTip, '语音合成初始化失败，功能不可用');
             btn.classList.remove('loading');
             btn.classList.add('disabled');

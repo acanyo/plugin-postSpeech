@@ -121,30 +121,6 @@
     box-sizing: border-box;
 }
 
-/* 进度条线条 */
-.likcc-speech-progress i {
-    width: var(--likcc-speech-progress-line-width);
-    height: var(--likcc-speech-progress-line-height);
-    background: rgba(0, 0, 0, 0.06);
-    border-radius: 1px;
-    transition: var(--likcc-speech-transition);
-    position: relative;
-    overflow: hidden;
-}
-
-/* 进度条填充 */
-.likcc-speech-progress i::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: var(--child-pct);
-    background: linear-gradient(to top, var(--likcc-speech-primary-color), var(--likcc-speech-secondary-color));
-    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 1px;
-}
-
 /* 播放/暂停图标 */
 .likcc-speech-icon {
     position: relative;
@@ -211,6 +187,18 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(244, 67, 54, 0.1);
+}
+
+/* 百分比显示样式 */
+.likcc-speech-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px; /* 根据需要调整字体大小 */
+    color: var(--likcc-speech-text-color); /* 使用文本颜色变量 */
+    z-index: 2; /* 确保在图标和进度条之上 */
+    pointer-events: none; /* 不响应鼠标事件 */
 }
 
 .likcc-speech-error.show {
