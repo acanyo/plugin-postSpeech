@@ -192,16 +192,35 @@
 /* 百分比显示样式 */
 .likcc-speech-percentage {
     position: absolute;
-    top: 50%;
+    top: 50%; /* 移到按钮垂直中心 */
     left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 12px; /* 根据需要调整字体大小 */
-    color: var(--likcc-speech-text-color); /* 使用文本颜色变量 */
+    transform: translate(-50%, -50%); /* 同时水平垂直居中 */
+    font-size: 14px; /* 稍微增大字体 */
+    color: var(--likcc-speech-text-color);
+    transition: all 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
     z-index: 2; /* 确保在图标和进度条之上 */
-    pointer-events: none; /* 不响应鼠标事件 */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* 添加文本阴影 */
+}
+
+.likcc-speech-percentage.show {
+    opacity: 1;
+    transform: translate(-50%, -50%); /* 保持居中 */
 }
 
 .likcc-speech-error.show {
     opacity: 1;
     transform: translateX(-50%) translateY(-4px);
+}
+
+/* 添加脉冲动画 */
+@keyframes likcc-speech-pulse {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.likcc-speech-percentage.pulsing {
+    animation: likcc-speech-pulse 0.5s ease-in-out;
 } 

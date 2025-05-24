@@ -263,7 +263,6 @@
             }
 
             if (isPlaying) {
-                // Update state and UI immediately
                 isPlaying = false;
                 btn.title = '继续朗读';
                 btn.classList.remove('playing');
@@ -300,10 +299,12 @@
                             btn.classList.remove('paused', 'ready');
                             btn.classList.add('playing');
                             icon.classList.add('pause');
+                            percentageElement.classList.add('show');
                         };
 
                         utterance.onend = () => {
                             resetState();
+                            percentageElement.classList.remove('show');
                         };
 
                         utterance.onerror = (event) => {
@@ -312,11 +313,17 @@
                                 showError(errorTip, '语音合成出错');
                             }
                             resetState();
+                            percentageElement.classList.remove('show');
                         };
 
                         utterance.onboundary = (event) => {
                             const progress = Math.min(100, Math.round((event.charIndex / articleContent.length) * 100 * 100) / 100);
                             percentageElement.textContent = `${Math.round(progress)}%`;
+                            percentageElement.classList.add('show');
+                            // 触发脉冲动画
+                            percentageElement.classList.remove('pulsing');
+                            void percentageElement.offsetWidth;
+                            percentageElement.classList.add('pulsing');
                         };
 
                         window.speechSynthesis.speak(utterance);
