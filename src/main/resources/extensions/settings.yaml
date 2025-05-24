@@ -43,6 +43,14 @@ spec:
           key: enableSpeech
           value: true
           help: "关闭后不在注入朗读功能"
+        - $formkit: text
+          if: $get(enableSpeech).value == true
+          label: 文章路由
+          name: postURL
+          id: postURL
+          key: postURL
+          value: "*/archives/*"
+          help: "在符合url条件的网页执行文章摘要功能，通常清况下，绝大多数Halo网站使用默认配置即可，无需调整"
         - $formkit: attachment
           if: $get(enableSpeech).value == true
           label: CSS样式

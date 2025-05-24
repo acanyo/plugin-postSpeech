@@ -19,6 +19,7 @@ public interface SettingConfigGetter {
         public static final String GROUP = "basic";
         private Boolean enableSpeech;
         private String speechStyle;
+        private String postURL;
         private String speechAloud;
         private String position;
     }

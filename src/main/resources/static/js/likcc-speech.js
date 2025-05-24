@@ -57,6 +57,7 @@
             const scripts = doc.querySelectorAll('script:not([src])');
             let enableSpeech = false;
             let postName = '';
+            let postURL = ''; // 获取 postURL
             
             scripts.forEach(script => {
                 if (script.textContent.includes('enableSpeech')) {
@@ -75,9 +76,23 @@
                         console.error('[LikccSpeech] 解析postName失败:', e);
                     }
                 }
+                // 获取 postURL
+                if (script.textContent.includes('postURL')) {
+                    try {
+                         const match = script.textContent.match(/postURL:\s*['"]([^'"]*)['"]/);
+                        if (match && match[1]) postURL = match[1];
+                    } catch (e) {
+                        console.error('[LikccSpeech] 解析postURL失败:', e);
+                    }
+                }
             });
 
-            if (enableSpeech && postName && postName !== '非文章页') {
+            const currentUrl = window.location.href; // 获取当前URL
+
+            // 整合所有启用条件判断：enableSpeech为true，postName存在且不为'非文章页'，并且路由匹配
+            const shouldEnableSpeech = enableSpeech && postName && postName !== '非文章页' && matchPostURL(currentUrl, postURL);
+
+            if (shouldEnableSpeech) {
                 try {
                     const contentResponse = await fetch('/apis/api.postspeech.lik.cc/v1alpha1/postspeech/content/' + postName);
                     
@@ -92,17 +107,29 @@
                         throw new Error('文章内容为空');
                     }
 
+                    // 只有所有条件都满足且成功获取文章内容后，才调用 createLikccSpeech
                     if (!window.likccSpeechInstance) {
                         window.createLikccSpeech({
                             postName,
-                            enableSpeech: true,
-                            content
+                            enableSpeech: true, // 此时enableSpeech已经是true，传递true即可
+                            content,
+                            postURL // 传递 postURL
                         });
                     }
                 } catch (error) {
-                    console.error('[LikccSpeech] 获取文章内容失败:', error);
+                    console.error('[LikccSpeech] 获取文章内容失败或处理错误:', error);
+                    // 可以在这里添加一些错误提示给用户，如果需要的话
+                }
+            } else {
+                 // 如果不满足启用条件（包括路由不匹配），确保清理旧实例
+                 if (window.likccSpeechInstance) {
+                    window.likccSpeechInstance.stop();
+                    const oldContainer = document.querySelector('.likcc-speech-container');
+                    if (oldContainer) oldContainer.remove();
+                    window.likccSpeechInstance = null;
                 }
             }
+
         } catch (error) {
             console.error('[LikccSpeech] 语音组件Pjax处理错误:', error);
         }
@@ -129,6 +156,22 @@
         }
     });
 
+    // 辅助函数：检查当前URL是否匹配postURL模式
+    const matchPostURL = (currentUrl, postUrlPattern) => {
+        if (!postUrlPattern) {
+            return true; // 如果没有设置postURL模式，则默认匹配
+        }
+        // 将简单的通配符*转换为正则表达式的一部分
+        const regexPattern = '^' + postUrlPattern.replace(/\*/g, '.*') + '$';
+        try {
+            const regex = new RegExp(regexPattern);
+            return regex.test(currentUrl);
+        } catch (e) {
+            console.error('[LikccSpeech] 无效的postURL模式:', postUrlPattern, e);
+            return false; // 无效的模式不匹配
+        }
+    };
+
     window.createLikccSpeech = async function(options = {}) {
         const {
             target = document.body,
@@ -144,18 +187,12 @@
             buttonStyle = '',
             progressStyle = '',
             shadowStyle = '',
-            content = ''
+            content = '',
+            postURL = ''
         } = options;
 
-        if (!enableSpeech) {
-            if (window.likccSpeechInstance) {
-                window.likccSpeechInstance.stop();
-                const oldContainer = document.querySelector('.likcc-speech-container');
-                if (oldContainer) oldContainer.remove();
-                window.likccSpeechInstance = null;
-            }
-            return null;
-        }
+        // 移除了重复的 enableSpeech, postName, postURL 判断
+        // 这些判断已在 handlePjax 中完成
 
         if (!checkSpeechSynthesis()) {
             console.error('[LikccSpeech] 浏览器不支持语音合成');
@@ -230,7 +267,7 @@
         };
 
         let articleContent = content;
-        if (!articleContent) {
+        if (!articleContent && articleContent != "") {
             try {
                 const response = await fetch('/apis/api.postspeech.lik.cc/v1alpha1/postspeech/content/' + postName);
 

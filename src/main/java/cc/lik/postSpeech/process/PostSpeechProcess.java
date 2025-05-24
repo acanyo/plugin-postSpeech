@@ -51,6 +51,7 @@ public class PostSpeechProcess implements TemplateHeadProcessor {
                     createLikccSpeech({
                         position: '${position}',
                         defaultSpeed: ${defaultSpeed},
+                        postURL: '${postURL}',
                         postName: '${postName}',
                         enableSpeech: ${enableSpeech}
                     });
@@ -70,6 +71,7 @@ public class PostSpeechProcess implements TemplateHeadProcessor {
         properties.setProperty("cssUrl", config.getSpeechStyle() != null ? config.getSpeechStyle() : Constant.CSS_URL);
         properties.setProperty("scriptUrl", Constant.SCRIPT_URL);
         properties.setProperty("enableSpeech", String.valueOf(config.getEnableSpeech() && isPost));
+        properties.setProperty("postURL",config.getPostURL());
         return properties;
     }
 }
