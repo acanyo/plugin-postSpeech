@@ -38,15 +38,17 @@
 
     const handlePjax = async function() {
         try {
-            console.log('[LikccSpeech] Pjax切换开始，清理旧实例');
             if (window.likccSpeechInstance) {
                 window.likccSpeechInstance.stop();
-                const oldContainer = document.querySelector('.likcc-speech-container');
-                if (oldContainer) oldContainer.remove();
                 window.likccSpeechInstance = null;
             }
 
-            console.log('[LikccSpeech] 获取新页面配置');
+            // 同步清理旧实例容器
+            const oldContainer = document.querySelector('.likcc-speech-container');
+            if (oldContainer) {
+                oldContainer.remove();
+            }
+
             const response = await fetch(window.location.href);
             const html = await response.text();
             const parser = new DOMParser();
@@ -61,7 +63,6 @@
                     try {
                         const match = script.textContent.match(/enableSpeech:\s*(true|false)/);
                         if (match && match[1]) enableSpeech = match[1] === 'true';
-                        console.log('[LikccSpeech] 解析到enableSpeech:', enableSpeech);
                     } catch (e) {
                         console.error('[LikccSpeech] 解析enableSpeech配置失败:', e);
                     }
@@ -70,42 +71,44 @@
                     try {
                         const match = script.textContent.match(/postName:\s*['"]([^'"]*)['"]/);
                         if (match && match[1]) postName = match[1];
-                        console.log('[LikccSpeech] 解析到postName:', postName);
                     } catch (e) {
                         console.error('[LikccSpeech] 解析postName失败:', e);
                     }
                 }
             });
 
-            if (enableSpeech && postName) {
+            if (enableSpeech && postName && postName !== '非文章页') {
                 try {
-                    console.log('[LikccSpeech] 获取新文章内容:', postName);
                     const contentResponse = await fetch('/apis/api.postspeech.lik.cc/v1alpha1/postspeech/content/' + postName);
+                    
+                    if (!contentResponse.ok) {
+                        const errorText = await contentResponse.text();
+                        throw new Error(`获取文章内容失败: ${contentResponse.status} - ${errorText}`);
+                    }
+
                     const content = await contentResponse.text();
                     
                     if (!content || content.trim() === '') {
                         throw new Error('文章内容为空');
                     }
-                    console.log('[LikccSpeech] 获取到文章内容长度:', content.length);
 
-                    console.log('[LikccSpeech] 初始化新语音组件');
-                    window.createLikccSpeech({
-                        postName,
-                        enableSpeech: true,
-                        content
-                    });
+                    if (!window.likccSpeechInstance) {
+                        window.createLikccSpeech({
+                            postName,
+                            enableSpeech: true,
+                            content
+                        });
+                    }
                 } catch (error) {
                     console.error('[LikccSpeech] 获取文章内容失败:', error);
                 }
-            } else {
-                console.log('[LikccSpeech] 未启用语音或未找到文章名称');
             }
         } catch (error) {
             console.error('[LikccSpeech] 语音组件Pjax处理错误:', error);
         }
     };
 
-    const debouncedHandlePjax = Handsomedebounce(handlePjax, 100);
+    const debouncedHandlePjax = Handsomedebounce(handlePjax, 300);
 
     document.addEventListener('DOMContentLoaded', debouncedHandlePjax);
     document.addEventListener('pjax:complete', debouncedHandlePjax);
@@ -115,8 +118,6 @@
     document.addEventListener('pjax:start', () => {
         if (window.likccSpeechInstance) {
             window.likccSpeechInstance.stop();
-            const oldContainer = document.querySelector('.likcc-speech-container');
-            if (oldContainer) oldContainer.remove();
             window.likccSpeechInstance = null;
         }
     });
@@ -124,14 +125,11 @@
     document.addEventListener('pjax:error', () => {
         if (window.likccSpeechInstance) {
             window.likccSpeechInstance.stop();
-            const oldContainer = document.querySelector('.likcc-speech-container');
-            if (oldContainer) oldContainer.remove();
             window.likccSpeechInstance = null;
         }
     });
 
     window.createLikccSpeech = async function(options = {}) {
-        console.log('[LikccSpeech] 开始创建语音组件:', options);
         const {
             target = document.body,
             postName = '',
@@ -150,13 +148,24 @@
         } = options;
 
         if (!enableSpeech) {
-            console.log('[LikccSpeech] 语音功能未启用');
             if (window.likccSpeechInstance) {
                 window.likccSpeechInstance.stop();
                 const oldContainer = document.querySelector('.likcc-speech-container');
                 if (oldContainer) oldContainer.remove();
                 window.likccSpeechInstance = null;
             }
+            return null;
+        }
+
+        if (!checkSpeechSynthesis()) {
+            console.error('[LikccSpeech] 浏览器不支持语音合成');
+            return null;
+        }
+
+        try {
+            await waitForVoices();
+        } catch (error) {
+            console.error('[LikccSpeech] 等待语音合成API就绪失败:', error);
             return null;
         }
 
@@ -238,12 +247,17 @@
         if (!articleContent) {
             try {
                 const response = await fetch('/apis/api.postspeech.lik.cc/v1alpha1/postspeech/content/' + postName);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`获取文章内容失败: ${response.status} - ${errorText}`);
+                }
+
                 articleContent = await response.text();
                 if (!articleContent || articleContent.trim() === '') {
                     throw new Error('文章内容为空');
                 }
             } catch (error) {
-                console.error('获取文章内容失败:', error);
                 showError(errorTip, '获取文章内容失败');
                 btn.classList.remove('loading');
                 btn.classList.add('disabled');
@@ -255,14 +269,6 @@
         btn.title = '开始朗读';
         btn.classList.remove('loading');
         btn.classList.add('ready');
-
-        if (!checkSpeechSynthesis()) {
-            showError(errorTip, '您的浏览器不支持语音合成');
-            btn.classList.remove('loading');
-            btn.classList.add('disabled');
-            btn.title = '不支持语音合成';
-            return null;
-        }
 
         const togglePlay = async () => {
             if (!isInitialized) {
@@ -279,41 +285,39 @@
                 icon.classList.remove('pause');
             } else {
                 try {
-                    if (window.speechSynthesis.paused) {
-                        window.speechSynthesis.resume();
-                    } else {
-                        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-                            window.speechSynthesis.cancel();
-                        }
-
-                        utterance = new SpeechSynthesisUtterance(articleContent);
-                        utterance.rate = defaultSpeed;
-
-                        utterance.onstart = () => {
-                            isPlaying = true;
-                            btn.title = '暂停朗读';
-                            btn.classList.remove('paused', 'ready');
-                            btn.classList.add('playing');
-                            icon.classList.add('pause');
-                            updateProgress(0);
-                        };
-
-                        utterance.onend = resetState;
-
-                        utterance.onerror = (event) => {
-                            if (!event.error || event.error !== 'interrupted') {
-                                showError(errorTip, '语音合成出错');
-                            }
-                            resetState();
-                        };
-
-                        utterance.onboundary = (event) => {
-                            const progress = Math.min(100, Math.round((event.charIndex / articleContent.length) * 100 * 100) / 100);
-                            updateProgress(progress);
-                        };
-
-                        window.speechSynthesis.speak(utterance);
+                    if (window.speechSynthesis.speaking || window.speechSynthesis.pending || window.speechSynthesis.paused) {
+                        window.speechSynthesis.cancel();
                     }
+
+                    utterance = new SpeechSynthesisUtterance(articleContent);
+                    utterance.rate = defaultSpeed;
+
+                    utterance.onstart = () => {
+                        isPlaying = true;
+                        btn.title = '暂停朗读';
+                        btn.classList.remove('paused', 'ready');
+                        btn.classList.add('playing');
+                        icon.classList.add('pause');
+                        updateProgress(0);
+                    };
+
+                    utterance.onend = () => {
+                        resetState();
+                    };
+
+                    utterance.onerror = (event) => {
+                        if (!event.error || event.error !== 'interrupted') {
+                            showError(errorTip, '语音合成出错');
+                        }
+                        resetState();
+                    };
+
+                    utterance.onboundary = (event) => {
+                        const progress = Math.min(100, Math.round((event.charIndex / articleContent.length) * 100 * 100) / 100);
+                        updateProgress(progress);
+                    };
+
+                    window.speechSynthesis.speak(utterance);
 
                     isPlaying = true;
                     btn.title = '暂停朗读';
